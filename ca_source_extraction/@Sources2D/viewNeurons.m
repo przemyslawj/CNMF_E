@@ -39,6 +39,8 @@ ind_del = false(size(ind));     % indicator of deleting neurons
 ctr = obj.estCenter();      %neuron's center
 gSiz = obj.options.gSiz;        % maximum size of a neuron
 
+outlines = obj.get_contours(0.5);
+
 % time
 T = size(obj.C, 2);
 t = 1:T;
@@ -63,9 +65,14 @@ if ~save_img
 end
 
 %% start viewing neurons
-figure('position', [100, 100, 1024, 512]);
+h=figure('position', [100, 100, 1024, 512]);
 m=1;
+prev_m = 0;
 while and(m>=1, m<=length(ind))
+    if prev_m ~= m
+        eventIdx = 1;
+        prev_m = m;
+    end
     %% full-frame view
     subplot(221); cla;
     obj.image(obj.A(:, ind(m)).*Amask(:, ind(m))); %
@@ -99,15 +106,21 @@ while and(m>=1, m<=length(ind))
     xlim([t(1), t(end)]);
     xlabel(str_xlabel);
     
+    trace = obj.C(ind(m), :)*max(obj.A(:, ind(m)));
+    eventTimes = getPeaks(trace, 4);
+    eventTimes = eventTimes{1};
+    
     %% save images
     if save_img
         drawnow();
         saveas(gcf, sprintf('neuron_%d.png', ind(m)));
         m = m+1;
     else
-        fprintf('Neuron %d, keep(k, default)/delete(d)/split(s)/trim(t)\n\t/trim cancel(tc)/delete all(da)/backward(b)/end(e):    ', ind(m));
+        fprintf('Neuron %d, keep(k, default)/delete(d)/split(s)/trim(t)\n\t/trim cancel(tc)/delete all(da)/backward(b)/end(e)/show movie(m):    ', ind(m));
         
-        temp = input('', 's');
+        set(h, 'CurrentCharacter', 'k');
+        waitforbuttonpress();
+        temp = get(h, 'CurrentCharacter');
         if temp=='d'
             ind_del(m) = true;
             m = m+1;
@@ -154,6 +167,24 @@ while and(m>=1, m<=length(ind))
             ind_trim(m) = false;
         elseif strcmpi(temp, 'e')
             break;
+        elseif strcmpi(temp, 'm')
+            if isempty(eventTimes)
+                eventTime = 100;
+            else
+                if eventIdx > numel(eventTimes)
+                    eventIdx = 1;
+                end
+                fprintf('Showing event %d out of %d\n', eventIdx, numel(eventTimes))
+                eventTime = eventTimes(eventIdx);
+            end
+            temporalWindow = 50;
+            cutout_start = max(1, eventTime - temporalWindow/2);
+            cutout_end = min(eventTime + temporalWindow/2, size(obj.C, 2));
+            Ypatch = obj.load_patch_data([], [cutout_start, cutout_end]);
+            playEventMovie(Ypatch, ind(m), trace(cutout_start:cutout_end), ...
+                ctr, outlines, ind_del);
+            eventIdx = eventIdx + 1;
+
         elseif ~isnan(str2double(temp))
             m = m + floor(str2double(temp));
             m = max(m, 1);

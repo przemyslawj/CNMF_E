@@ -21,7 +21,7 @@ try
     mat_file = mat_data.Properties.Source;
     
     % dimension of data
-    dims = mat_data.dims;
+    dims = int32(mat_data.dims);
     d1 = dims(1);
     d2 = dims(2);
     T = dims(3);
