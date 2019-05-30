@@ -6,7 +6,7 @@ function [signalPeaksArray] = getPeaks( F, stdThreshold )
         [~,testpeaks] = findpeaks(inputSignal,...
             'minpeakheight',inputSignalStd * stdThreshold,...
             'minpeakdistance',10);
-        
+
         signalPeaksArray{i} = testpeaks;
     end
 end
