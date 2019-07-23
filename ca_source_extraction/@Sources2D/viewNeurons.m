@@ -96,6 +96,9 @@ while and(m>=1, m<=length(ind))
     
     %% temporal components
     subplot(2,2,3:4);cla;
+    
+    % TODO If the recording too long, show a subset
+    
     if ~isempty(C2)
         plot(t, C2(ind(m), :)*max(obj.A(:, ind(m))), 'linewidth', 2); hold on;
         plot(t, obj.C(ind(m), :)*max(obj.A(:, ind(m))), 'r');
@@ -107,8 +110,24 @@ while and(m>=1, m<=length(ind))
     xlabel(str_xlabel);
     
     trace = obj.C(ind(m), :)*max(obj.A(:, ind(m)));
-    eventTimes = getPeaks(trace, 4);
-    eventTimes = eventTimes{1};
+    
+    % adjust threshold for peak detection to show only largest events
+    std_thr = 6;
+    finish = false;
+    while true
+        eventTimes = getPeaks(trace, std_thr);
+        eventTimes = eventTimes{1};
+        if finish
+            break;
+        elseif numel(eventTimes) > 10
+            std_thr = std_thr + 1;
+        elseif numel(eventTimes) < 2
+            std_thr = std_thr - 1;
+            finish = true;
+        else
+            break
+        end
+    end
     
     %% save images
     if save_img
@@ -191,7 +210,7 @@ while and(m>=1, m<=length(ind))
             m = min(m, length(ind));
             fprintf('jump to neuron %d / %d\n', m, length(ind));
         else
-            m = m+1;
+            %m = m+1;
         end
     end
 end
