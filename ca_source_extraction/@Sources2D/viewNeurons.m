@@ -33,6 +33,9 @@ end
 
 % obj.delete(sum(obj.A>0, 1)<max(obj.options.min_pixel, 1));
 
+% TODO sort_order
+
+
 Amask = (obj.A~=0);
 ind_trim = false(size(ind));    % indicator of trimming neurons
 ind_del = false(size(ind));     % indicator of deleting neurons
@@ -64,23 +67,29 @@ if ~save_img
     end
 end
 
+
 %% start viewing neurons
-h=figure('position', [100, 100, 1024, 512]);
+h=figure('position', [100, 100, 1024, 512],...
+    'Name', 'Cell Review');
+nneurons = size(obj.A, 2);
 m=1;
 prev_m = 0;
 while and(m>=1, m<=length(ind))
     if prev_m ~= m
         eventIdx = 1;
         prev_m = m;
+        
+        trace = obj.C_raw(ind(m), :)*max(obj.A(:, ind(m)));
+        [~, eventTimes] = getPeaks(trace, 5);
     end
     %% full-frame view
     subplot(221); cla;
     obj.image(obj.A(:, ind(m)).*Amask(:, ind(m))); %
     axis equal; axis off;
     if ind_del(m)
-        title(sprintf('Neuron %d', ind(m)), 'color', 'r');
+        title(sprintf('Neuron %d out of %d', m, nneurons), 'color', 'r');
     else
-        title(sprintf('Neuron %d', ind(m)));
+        title(sprintf('Neuron %d out of %d', m, nneurons));
     end
     %% zoomed-in view
     subplot(222); cla;
@@ -109,33 +118,14 @@ while and(m>=1, m<=length(ind))
     xlim([t(1), t(end)]);
     xlabel(str_xlabel);
     
-    trace = obj.C(ind(m), :)*max(obj.A(:, ind(m)));
-    
-    % adjust threshold for peak detection to show only largest events
-    std_thr = 6;
-    finish = false;
-    while true
-        eventTimes = getPeaks(trace, std_thr);
-        eventTimes = eventTimes{1};
-        if finish
-            break;
-        elseif numel(eventTimes) > 10
-            std_thr = std_thr + 1;
-        elseif numel(eventTimes) < 2
-            std_thr = std_thr - 1;
-            finish = true;
-        else
-            break
-        end
-    end
-    
+ 
     %% save images
     if save_img
         drawnow();
         saveas(gcf, sprintf('neuron_%d.png', ind(m)));
         m = m+1;
     else
-        fprintf('Neuron %d, keep(k, default)/delete(d)/split(s)/trim(t)\n\t/trim cancel(tc)/delete all(da)/backward(b)/end(e)/show movie(m):    ', ind(m));
+        fprintf('Neuron %d, keep(k, default)/delete(d)/split(s)/trim(t)\n\t/trim cancel(c)/delete all(a)/backward(b)/end(e)/show movie(m):    ', ind(m));
         
         set(h, 'CurrentCharacter', 'k');
         waitforbuttonpress();
@@ -145,7 +135,7 @@ while and(m>=1, m<=length(ind))
             m = m+1;
         elseif strcmpi(temp, 'b')
             m = m-1;
-        elseif strcmpi(temp, 'da')
+        elseif strcmpi(temp, 'a')
             ind_del(m:end) = true;
             break;
         elseif strcmpi(temp, 'k')
@@ -181,7 +171,7 @@ while and(m>=1, m<=length(ind))
             catch
                 fprintf('the neuron was not trimmed\n');
             end
-        elseif strcmpi(temp, 'tc')
+        elseif strcmpi(temp, 'c')
             Amask(:, ind(m)) = (obj.A(:, ind(m)) > 0);
             ind_trim(m) = false;
         elseif strcmpi(temp, 'e')
@@ -235,9 +225,7 @@ else
         end
         obj.delete(ind(ind_del));
     end
-    %     obj.Coor = obj.get_contours(0.9);
-    
-    
+
     return;
 end
 try

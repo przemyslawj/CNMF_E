@@ -620,6 +620,16 @@ classdef Sources2D < handle
                 elseif strcmpi(srt, 'pnr')
                     pnrs = max(obj.C, [], 2)./std(obj.C_raw-obj.C, 0, 2);
                     [~, srt] = sort(pnrs, 'descend');
+                elseif strcmpi(srt, 'my_pnr')
+                    pnrs = zeros(size(obj.C, 1), 1);
+                    for m = 1 : size(obj.C, 1)
+                        trace = obj.C_raw(m, :)*max(obj.A(:, m));
+                        [noise_mean, noise] = estimate_baseline_noise(trace);
+                        top_quantile = quantile(trace, 0.999);
+                        top_peaks = mean(trace(trace > top_quantile)) - noise_mean;
+                        pnrs(m) = top_peaks / noise;
+                    end
+                    [~, srt] = sort(pnrs, 'descend');
                 elseif strcmpi(srt, 'temporal_cluster')
                     obj.orderROIs('pnr');
                     dd = pdist(obj.C_raw, 'cosine');
