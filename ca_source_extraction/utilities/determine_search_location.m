@@ -66,10 +66,18 @@ switch method
            parfor i = 1:nr            % calculation of variance for each component and construction of ellipses
                if d3 == 1
                    Vr{i} = ([Coor.x - cm(i,1), Coor.y - cm(i,2)]'*spdiags(A(:,i),0,d,d)*[Coor.x - cm(i,1), Coor.y - cm(i,2)])/sum(A(:,i));
+                   X = Vr{i};
+                   X(isnan(X)) = 0;
+                   X(isinf(X)) = 0;
+                   Vr{i} = X;
                    [V,D] = eig(Vr{i});
                    cor = [Coor.x - cm(i,1),Coor.y - cm(i,2)];
                else
                    Vr{i} = ([Coor.x - cm(i,1), Coor.y - cm(i,2), Coor.z - cm(i,3)]'*spdiags(A(:,i),0,d,d)*[Coor.x - cm(i,1), Coor.y - cm(i,2), Coor.z - cm(i,3)])/sum(A(:,i));
+                   X = Vr{i};
+                   X(isnan(X)) = 0;
+                   X(isinf(X)) = 0;
+                   Vr{i} = X;
                    [V,D] = eig(Vr{i});
                    cor = [Coor.x - cm(i,1),Coor.y - cm(i,2),Coor.z - cm(i,3)];
                end                              
